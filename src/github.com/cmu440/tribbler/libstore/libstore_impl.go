@@ -38,10 +38,12 @@ func NewLibstore(masterServerHostPort, myHostPort string, mode LeaseMode) (Libst
 	return nil, errors.New("not implemented")
 }
 
+// if key does not exist, return non-nil error
 func (ls *libstore) Get(key string) (string, error) {
 	return "", errors.New("not implemented")
 }
 
+// if inserting key and value succeed, return nil error
 func (ls *libstore) Put(key, value string) error {
 	return errors.New("not implemented")
 }
@@ -50,14 +52,17 @@ func (ls *libstore) Delete(key string) error {
 	return errors.New("not implemented")
 }
 
+// if key does not exist, return non-nil error
 func (ls *libstore) GetList(key string) ([]string, error) {
 	return nil, errors.New("not implemented")
 }
 
+// if removeItem dose not exist, return non-nil error
 func (ls *libstore) RemoveFromList(key, removeItem string) error {
 	return errors.New("not implemented")
 }
 
+// if newItem exists in the list, return non-nil error
 func (ls *libstore) AppendToList(key, newItem string) error {
 	return errors.New("not implemented")
 }
