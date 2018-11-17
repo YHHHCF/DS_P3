@@ -252,6 +252,7 @@ func testInitStorageServers() {
 		return
 	}
 	if len(replyR.Servers) != (*numServer) {
+		fmt.Println("debug test:", len(replyR.Servers), (*numServer))
 		LOGE.Println("FAIL: storage system returned wrong server list:", err)
 		failCount++
 		return

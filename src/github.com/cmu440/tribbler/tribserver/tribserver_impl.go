@@ -60,7 +60,6 @@ func (ts *tribServer) CreateUser(args *tribrpc.CreateUserArgs, reply *tribrpc.Cr
 		return nil
 	} else { // userId does not exist
 		putErr := ts.l.Put(userKey, args.UserID)
-		//fmt.Println("create user debug2", putErr)
 		reply.Status = tribrpc.OK
 		return putErr
 	}
@@ -274,19 +273,6 @@ func (ts *tribServer) GetTribblesBySubscription(args *tribrpc.GetTribblesArgs, r
 }
 
 type tribsSorted []tribrpc.Tribble
-
-//
-//func (sorted tribsSorted) Len() int {
-//	return len(sorted)
-//}
-//
-//func (sorted tribsSorted) Newer(i, j int) bool {
-//	return sorted[i].Posted.UnixNano() > sorted[j].Posted.UnixNano()
-//}
-//
-//func (sorted tribsSorted) Swap(i, j int) {
-//	sorted[i], sorted[j] = sorted[j], sorted[i]
-//}
 
 func (ts *tribServer) SortByPostTime(tribs []string) []tribrpc.Tribble {
 	var result []tribrpc.Tribble

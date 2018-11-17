@@ -1,20 +1,19 @@
 package storageserver
 
 import (
-	"errors"
 	"fmt"
+	"github.com/cmu440/tribbler/rpc/storagerpc"
 	"net"
 	"net/http"
 	"net/rpc"
-	"sync"
-
-	"github.com/cmu440/tribbler/rpc/storagerpc"
 )
 
 type storageServer struct {
-	mux sync.Mutex
-
 	masterServerHostPort string
+
+	isRegistered bool
+	isMaster     bool
+	nodes        []storagerpc.Node
 
 	listMap map[string][]string
 	itemMap map[string]string
@@ -33,6 +32,18 @@ func NewStorageServer(masterServerHostPort string, numNodes, port int, virtualID
 	sServer := new(storageServer)
 
 	sServer.masterServerHostPort = masterServerHostPort
+
+	sServer.isRegistered = false
+
+	sServer.isMaster = true
+
+	if masterServerHostPort == "" {
+		sServer.isMaster = true
+
+		thisNode := storagerpc.Node{HostPort: masterServerHostPort, VirtualIDs: virtualIDs}
+		sServer.nodes = append(sServer.nodes, thisNode)
+	}
+
 	sServer.itemMap = make(map[string]string)
 	sServer.listMap = make(map[string][]string)
 
@@ -56,20 +67,26 @@ func NewStorageServer(masterServerHostPort string, numNodes, port int, virtualID
 }
 
 func (ss *storageServer) RegisterServer(args *storagerpc.RegisterArgs, reply *storagerpc.RegisterReply) error {
-	//args.ServerInfo
-	//reply.Servers
-	//reply.Status
-	return errors.New("not implemented RegisterServer")
+
+	ss.isRegistered = true
+	ss.nodes = append(ss.nodes, args.ServerInfo)
+
+	reply.Status = storagerpc.OK
+	reply.Servers = ss.nodes
+
+	return nil
 }
 
 func (ss *storageServer) GetServers(args *storagerpc.GetServersArgs, reply *storagerpc.GetServersReply) error {
-	reply.Status = storagerpc.OK
 
-	masterServer := storagerpc.Node{HostPort: ss.masterServerHostPort}
-	var nodes []storagerpc.Node
-	nodes = append(nodes, masterServer)
+	if ss.isRegistered {
+		reply.Status = storagerpc.OK
+	} else {
+		reply.Status = storagerpc.NotReady
+	}
 
-	reply.Servers = nodes
+	reply.Servers = ss.nodes
+
 	return nil
 }
 
@@ -119,7 +136,6 @@ func (ss *storageServer) AppendToList(args *storagerpc.PutArgs, reply *storagerp
 
 	list, hasKey := ss.listMap[key]
 	if hasKey {
-		fmt.Println("AppendToList, has key")
 		len := len(list)
 
 		i := 0
@@ -130,7 +146,6 @@ func (ss *storageServer) AppendToList(args *storagerpc.PutArgs, reply *storagerp
 		}
 
 		if i <= len-1 {
-			fmt.Println("exists")
 			reply.Status = storagerpc.ItemExists
 			return nil
 		}
@@ -180,5 +195,4 @@ func (ss *storageServer) RemoveFromList(args *storagerpc.PutArgs, reply *storage
 		reply.Status = storagerpc.ItemNotFound
 		return nil
 	}
-
 }
