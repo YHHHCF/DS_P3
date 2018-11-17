@@ -296,6 +296,7 @@ func testInitStorageServers() {
 
 // Get keys without and with wantlease
 func testPutGetDelete() {
+	fmt.Println("debug testPutGetDelete")
 	// get an invalid key
 	replyG, err := st.Get("nullkey:1", false)
 	if checkErrorStatus(err, replyG.Status, storagerpc.KeyNotFound) {
@@ -423,6 +424,7 @@ func testAppendGetRemoveList() {
 
 // Without leasing, we should not expect revoke
 func testUpdateWithoutLease() {
+	fmt.Println("debug testUpdateWithoutLease")
 	key := "revokekey:0"
 
 	replyP, err := st.Put(key, "value")

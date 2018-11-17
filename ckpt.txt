@@ -1,0 +1,4 @@
+$GOPATH/tests_cp/tribtest.sh
+$GOPATH/tests_cp/libtest.sh
+$GOPATH/tests_cp/storagetest.sh
+$GOPATH/tests_cp/runall.sh

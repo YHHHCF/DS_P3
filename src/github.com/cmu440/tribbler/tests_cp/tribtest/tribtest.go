@@ -56,6 +56,7 @@ func initTribServer(masterServerHostPort string, tribServerPort int) error {
 	// Create and start the TribServer.
 	tribServer, err := tribserver.NewTribServer(masterServerHostPort, tribServerHostPort)
 	if err != nil {
+		fmt.Println("debug 1:", err)
 		LOGE.Println("Failed to create TribServer:", err)
 		return err
 	}

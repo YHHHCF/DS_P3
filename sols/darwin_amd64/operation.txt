@@ -1,0 +1,17 @@
+go install github.com/cmu440/tribbler/runners/srunner
+go install github.com/cmu440/tribbler/runners/lrunner
+go install github.com/cmu440/tribbler/runners/trunner
+go install github.com/cmu440/tribbler/runners/crunner
+
+./srunner -port=9009
+./srunner -port=9009 -N=3
+./srunner -master="localhost:9009"
+./srunner -master="localhost:9009"
+./srunner -port=9009 &
+
+./lrunner -port=9009 p thom yorke
+./lrunner -port=9009 g thom
+
+./srunner -help
+./lrunner -help
+./crunner -help

@@ -16,7 +16,7 @@ import (
 
 type storageTester struct {
 	srv        *rpc.Client
-	myhostport string
+	myHostPort string
 }
 
 type testFunc struct {
@@ -49,7 +49,7 @@ var statusMap = map[storagerpc.Status]string{
 
 func initStorageTester(server, myhostport string) (*storageTester, error) {
 	tester := new(storageTester)
-	tester.myhostport = myhostport
+	tester.myHostPort = myhostport
 
 	// Create RPC connection to storage server.
 	srv, err := rpc.DialHTTP("tcp", server)
@@ -69,7 +69,7 @@ func initStorageTester(server, myhostport string) (*storageTester, error) {
 }
 
 func (st *storageTester) RegisterServer() (*storagerpc.RegisterReply, error) {
-	node := storagerpc.Node{HostPort: st.myhostport, VirtualIDs: []uint32{uint32(*myID)}}
+	node := storagerpc.Node{HostPort: st.myHostPort, VirtualIDs: []uint32{uint32(*myID)}}
 	args := &storagerpc.RegisterArgs{ServerInfo: node}
 	var reply storagerpc.RegisterReply
 	err := st.srv.Call("StorageServer.RegisterServer", args, &reply)
@@ -98,14 +98,14 @@ func (st *storageTester) Delete(key string) (*storagerpc.DeleteReply, error) {
 }
 
 func (st *storageTester) Get(key string, wantlease bool) (*storagerpc.GetReply, error) {
-	args := &storagerpc.GetArgs{Key: key, WantLease: wantlease, HostPort: st.myhostport}
+	args := &storagerpc.GetArgs{Key: key, WantLease: wantlease, HostPort: st.myHostPort}
 	var reply storagerpc.GetReply
 	err := st.srv.Call("StorageServer.Get", args, &reply)
 	return &reply, err
 }
 
 func (st *storageTester) GetList(key string, wantlease bool) (*storagerpc.GetListReply, error) {
-	args := &storagerpc.GetArgs{Key: key, WantLease: wantlease, HostPort: st.myhostport}
+	args := &storagerpc.GetArgs{Key: key, WantLease: wantlease, HostPort: st.myHostPort}
 	var reply storagerpc.GetListReply
 	err := st.srv.Call("StorageServer.GetList", args, &reply)
 	return &reply, err
@@ -267,20 +267,24 @@ func testInitStorageServers() {
 
 // Get keys without wantlease
 func testPutGetWithoutLease() {
+	fmt.Println("debug testPutGetWithoutLease")
 	// get an invalid key
 	replyG, err := st.Get("nullkey:1", false)
 	if checkErrorStatus(err, replyG.Status, storagerpc.KeyNotFound) {
+		fmt.Println("debug 1")
 		return
 	}
 
 	replyP, err := st.Put("keyputget:1", "value")
 	if checkErrorStatus(err, replyP.Status, storagerpc.OK) {
+		fmt.Println("debug 2")
 		return
 	}
 
 	// without asking for a lease
 	replyG, err = st.Get("keyputget:1", false)
 	if checkErrorStatus(err, replyG.Status, storagerpc.OK) {
+		fmt.Println("debug 3")
 		return
 	}
 	if replyG.Value != "value" {
@@ -328,12 +332,14 @@ func testAppendGetRemoveList() {
 	// test AppendToList
 	replyP, err := st.AppendToList("keylist:1", "value1")
 	if checkErrorStatus(err, replyP.Status, storagerpc.OK) {
+		fmt.Println("testAppendGetRemoveList, debug 1")
 		return
 	}
 
 	// test GetList
 	replyL, err := st.GetList("keylist:1", false)
 	if checkErrorStatus(err, replyL.Status, storagerpc.OK) {
+		fmt.Println("testAppendGetRemoveList, debug 2")
 		return
 	}
 	if len(replyL.Value) != 1 || replyL.Value[0] != "value1" {
@@ -345,30 +351,35 @@ func testAppendGetRemoveList() {
 	// test AppendToList for a duplicated item
 	replyP, err = st.AppendToList("keylist:1", "value1")
 	if checkErrorStatus(err, replyP.Status, storagerpc.ItemExists) {
+		fmt.Println("testAppendGetRemoveList, debug 3")
 		return
 	}
 
 	// test AppendToList for a different item
 	replyP, err = st.AppendToList("keylist:1", "value2")
 	if checkErrorStatus(err, replyP.Status, storagerpc.OK) {
+		fmt.Println("testAppendGetRemoveList, debug 4")
 		return
 	}
 
 	// test RemoveFromList for the first item
 	replyP, err = st.RemoveFromList("keylist:1", "value1")
 	if checkErrorStatus(err, replyP.Status, storagerpc.OK) {
+		fmt.Println("testAppendGetRemoveList, debug 5")
 		return
 	}
 
 	// test RemoveFromList for removed item
 	replyP, err = st.RemoveFromList("keylist:1", "value1")
 	if checkErrorStatus(err, replyP.Status, storagerpc.ItemNotFound) {
+		fmt.Println("testAppendGetRemoveList, debug 6")
 		return
 	}
 
 	// test GetList after RemoveFromList
 	replyL, err = st.GetList("keylist:1", false)
 	if checkErrorStatus(err, replyL.Status, storagerpc.OK) {
+		fmt.Println("testAppendGetRemoveList, debug 7")
 		return
 	}
 	if len(replyL.Value) != 1 || replyL.Value[0] != "value2" {

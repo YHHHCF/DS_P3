@@ -2,12 +2,17 @@ package libstore
 
 import (
 	"errors"
-
 	"github.com/cmu440/tribbler/rpc/storagerpc"
+	"net/rpc"
+	"strconv"
 )
 
 type libstore struct {
-	// TODO: implement this!
+	masterServerHostPort string
+	myHostPort           string
+	leaseMode            LeaseMode
+
+	client *rpc.Client
 }
 
 // NewLibstore creates a new instance of a TribServer's libstore. masterServerHostPort
@@ -35,36 +40,103 @@ type libstore struct {
 // need to create a brand new HTTP handler to serve the requests (the Libstore may
 // simply reuse the TribServer's HTTP handler since the two run in the same process).
 func NewLibstore(masterServerHostPort, myHostPort string, mode LeaseMode) (Libstore, error) {
-	return nil, errors.New("not implemented")
+	lServer := new(libstore)
+	lServer.masterServerHostPort = masterServerHostPort
+	lServer.myHostPort = myHostPort
+	lServer.leaseMode = mode
+
+	cli, err := rpc.DialHTTP("tcp", masterServerHostPort)
+	if err != nil {
+		return nil, err
+	}
+
+	lServer.client = cli
+
+	return lServer, nil
 }
 
 // if key does not exist, return non-nil error
 func (ls *libstore) Get(key string) (string, error) {
-	return "", errors.New("not implemented")
+	args := &storagerpc.GetArgs{Key: key, WantLease: false, HostPort: ls.myHostPort}
+	var reply storagerpc.GetReply
+
+	err := ls.client.Call("StorageServer.Get", args, &reply)
+
+	if reply.Status != storagerpc.OK {
+		err = errors.New("not ok")
+	}
+
+	return reply.Value, err
 }
 
 // if inserting key and value succeed, return nil error
 func (ls *libstore) Put(key, value string) error {
-	return errors.New("not implemented")
+	args := &storagerpc.PutArgs{Key: key, Value: value}
+	var reply storagerpc.PutReply
+
+	err := ls.client.Call("StorageServer.Put", args, &reply)
+
+	if reply.Status != storagerpc.OK {
+		err = errors.New("not ok")
+	}
+
+	return err
 }
 
 func (ls *libstore) Delete(key string) error {
-	return errors.New("not implemented")
+	args := &storagerpc.DeleteArgs{Key: key}
+	var reply storagerpc.DeleteReply
+
+	err := ls.client.Call("StorageServer.Delete", args, &reply)
+
+	if reply.Status != storagerpc.OK {
+		err = errors.New("not ok")
+	}
+
+	return err
 }
 
 // if key does not exist, return non-nil error
 func (ls *libstore) GetList(key string) ([]string, error) {
-	return nil, errors.New("not implemented")
+	args := &storagerpc.GetArgs{Key: key, WantLease: false, HostPort: ls.myHostPort}
+	var reply storagerpc.GetListReply
+
+	err := ls.client.Call("StorageServer.GetList", args, &reply)
+
+	if reply.Status != storagerpc.OK {
+		err = errors.New("not ok")
+	}
+
+	return reply.Value, err
 }
 
 // if removeItem dose not exist, return non-nil error
 func (ls *libstore) RemoveFromList(key, removeItem string) error {
-	return errors.New("not implemented")
+	args := &storagerpc.PutArgs{Key: key, Value: removeItem}
+	var reply storagerpc.PutReply
+
+	err := ls.client.Call("StorageServer.RemoveFromList", args, &reply)
+
+	// if the item could not be found, return an error
+	if reply.Status == storagerpc.ItemNotFound {
+		return errors.New(strconv.Itoa(int(reply.Status)))
+	}
+
+	return err
 }
 
 // if newItem exists in the list, return non-nil error
 func (ls *libstore) AppendToList(key, newItem string) error {
-	return errors.New("not implemented")
+	args := &storagerpc.PutArgs{Key: key, Value: newItem}
+	var reply storagerpc.PutReply
+
+	err := ls.client.Call("StorageServer.AppendToList", args, &reply)
+
+	if reply.Status != storagerpc.OK {
+		return errors.New(strconv.Itoa(int(reply.Status)))
+	}
+
+	return err
 }
 
 func (ls *libstore) RevokeLease(args *storagerpc.RevokeLeaseArgs, reply *storagerpc.RevokeLeaseReply) error {
