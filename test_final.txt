@@ -1,0 +1,6 @@
+$GOPATH/tests/libtest.sh
+$GOPATH/tests/libtest2.sh
+$GOPATH/tests/storagetest.sh
+$GOPATH/tests/storagetest2.sh
+$GOPATH/tests/stresstest.sh
+$GOPATH/tests/runall.sh
