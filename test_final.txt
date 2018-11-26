@@ -1,3 +1,4 @@
+$GOPATH/tests/tribtest.sh
 $GOPATH/tests/libtest.sh
 $GOPATH/tests/libtest2.sh
 $GOPATH/tests/storagetest.sh

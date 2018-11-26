@@ -29,10 +29,11 @@ type libstore struct {
 	listCache map[string][]string // the cache for GetList
 	itemCache map[string]string   // the cache for Get
 
-	client         *rpc.Client            // the connection to the master
-	keyClientMap   map[string]*rpc.Client // map a key to a storage server RPC client
-	storageServers []storagerpc.Node      // all the storage server nodes
-	virtualIDRing  map[uint32]string      // the virtualIDRing for all storage servers
+	client            *rpc.Client            // the connection to the master
+	keyHostPortMap    map[string]string      // map a key to a hostPort, n:1 relationship
+	hostPortClientMap map[string]*rpc.Client // map a hostPort to a clientConn, 1:1 relationship
+	storageServers    []storagerpc.Node      // all the storage server nodes
+	virtualIDRing     map[uint32]string      // map the hashID of each node to its hostPort
 }
 
 func NewLibstore(masterServerHostPort, myHostPort string, mode LeaseMode) (Libstore, error) {
@@ -46,7 +47,8 @@ func NewLibstore(masterServerHostPort, myHostPort string, mode LeaseMode) (Libst
 	lServer.itemCount = make(map[string]int)
 	lServer.listCache = make(map[string][]string)
 	lServer.itemCache = make(map[string]string)
-	lServer.keyClientMap = make(map[string]*rpc.Client)
+	lServer.keyHostPortMap = make(map[string]string)
+	lServer.hostPortClientMap = make(map[string]*rpc.Client)
 	lServer.virtualIDRing = make(map[uint32]string)
 
 	cli, err := rpc.DialHTTP("tcp", masterServerHostPort)
@@ -95,7 +97,6 @@ func NewLibstore(masterServerHostPort, myHostPort string, mode LeaseMode) (Libst
 
 	go lServer.LibStoreMain()
 
-	//fmt.Println("return a new libstore")
 	return lServer, nil
 }
 
@@ -178,7 +179,6 @@ func (ls *libstore) Put(key, value string) error {
 	err := client.Call("StorageServer.Put", args, &reply)
 
 	if reply.Status != storagerpc.OK {
-		//fmt.Println("put status", reply.Status)
 		err = errors.New("Put not ok")
 	}
 
@@ -563,7 +563,6 @@ func (ls *libstore) BuildRing() {
 
 	for _, node := range ls.storageServers {
 		for _, id := range node.VirtualIDs {
-			//fmt.Println("ring vID is", id, len(node.VirtualIDs))
 			ls.virtualIDRing[id] = node.HostPort
 		}
 	}
@@ -572,39 +571,70 @@ func (ls *libstore) BuildRing() {
 // get the RPC client corresponding to a key
 func (ls *libstore) GetClient(key string) *rpc.Client {
 	ls.mux.Lock()
-	client, hasKey := ls.keyClientMap[key]
+	// try to get the hostPort corresponding to the key from cache
+	hostPort, hasKey := ls.keyHostPortMap[key]
 	ls.mux.Unlock()
 
-	// if the corresponding client is in the cache, use it
+	// if the hostPort is in the cache, use it
 	if hasKey {
+		client := ls.GetConnFromHostPort(hostPort)
 		return client
-	} else { // if the corresponding client is not in the cache, map and cache it
-		client = ls.CacheKeyClientMap(key)
+	} else { // if the hostPort is not in the cache, connect and cache iy
+		// cache the map between key and hostPort and return connection
+		hostPort = ls.CacheKeyHostPortMap(key)
+
+		// set up connection and cache it
+		client := ls.GetConnFromHostPort(hostPort)
 		return client
 	}
 }
 
-// map and cache the key-client for future use
-func (ls *libstore) CacheKeyClientMap(key string) *rpc.Client {
+// get a connection from given hostPort
+func (ls *libstore) GetConnFromHostPort(hostPort string) *rpc.Client {
 	ls.mux.Lock()
-	defer ls.mux.Unlock()
+	conn, hasKey := ls.hostPortClientMap[hostPort]
+	ls.mux.Unlock()
+	// if the connection is already cached, use the cache
+	if hasKey {
+		return conn
+	} else { // if the conn is not cached yet, set up the connection and cache it
+		client := ls.SetUpConn(hostPort)
+		ls.CacheHostPortConnMap(hostPort, client)
+		return client
+	}
+}
 
-	vID := StoreHash(key)
-
-	//fmt.Println("requestID", vID)
-
-	// find the corresponding storage server in the list
-	hostPort := ls.FindNearestNode(vID)
-
-	// build clientConn
+// setup a new conn given a hostPort
+func (ls *libstore) SetUpConn(hostPort string) *rpc.Client {
 	cli, err := rpc.DialHTTP("tcp", hostPort)
 	if err != nil {
 		return nil
 	}
-
-	// cache the clientConn and return the client
-	ls.keyClientMap[key] = cli
 	return cli
+}
+
+// cache the map between hostPort and client connection
+func (ls *libstore) CacheHostPortConnMap(hostPort string, conn *rpc.Client) {
+	ls.mux.Lock()
+	defer ls.mux.Unlock()
+
+	ls.hostPortClientMap[hostPort] = conn
+}
+
+// map and cache the key-client for future use
+func (ls *libstore) CacheKeyHostPortMap(key string) string {
+	ls.mux.Lock()
+	defer ls.mux.Unlock()
+
+	// get the virtual ID of the key
+	vID := StoreHash(key)
+
+	// find the corresponding storage server in the list
+	hostPort := ls.FindNearestNode(vID)
+
+	// cache the clientConn and return the hostPort
+	ls.keyHostPortMap[key] = hostPort
+	return hostPort
 }
 
 // find the hostPort with the nearest vID which is equal or greater than the given ID
@@ -614,12 +644,10 @@ func (ls *libstore) FindNearestNode(vID uint32) string {
 	tempDiff = 0xffffffff
 
 	for ID, value := range ls.virtualIDRing {
-		//fmt.Println("inputID, ringID, diff", vID, ID, uint32(ID - vID))
 		if tempDiff > uint32(ID-vID) {
 			tempDiff = uint32(ID - vID)
 			tempStr = value
 		}
 	}
-	//fmt.Println("the best diff is", tempDiff)
 	return tempStr
 }
