@@ -72,7 +72,9 @@ func (st *storageTester) RegisterServer() (*storagerpc.RegisterReply, error) {
 	node := storagerpc.Node{HostPort: st.myHostPort, VirtualIDs: []uint32{uint32(*myID)}}
 	args := &storagerpc.RegisterArgs{ServerInfo: node}
 	var reply storagerpc.RegisterReply
+	LOGE.Println("555")
 	err := st.srv.Call("StorageServer.RegisterServer", args, &reply)
+	LOGE.Println("666")
 	return &reply, err
 }
 
@@ -231,10 +233,14 @@ func cacheKeyList(key string) bool {
 // make sure to run N-1 servers in shell before entering this function
 func testInitStorageServers() {
 	// test get server
+	LOGE.Println("111")
 	replyGS, err := st.GetServers()
+	LOGE.Println(replyGS.Servers)
+	LOGE.Println("222")
 	if checkError(err, false) {
 		return
 	}
+
 	if replyGS.Status == storagerpc.OK {
 		LOGE.Println("FAIL: storage system should not be ready:", err)
 		failCount++
@@ -242,7 +248,9 @@ func testInitStorageServers() {
 	}
 
 	// test register
+	LOGE.Println("333")
 	replyR, err := st.RegisterServer()
+	LOGE.Println("444")
 	if checkError(err, false) {
 		return
 	}

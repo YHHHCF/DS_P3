@@ -1007,7 +1007,11 @@ func testUpdateListBeforeLeaseExpire() {
 	if cacheKeyList(key) {
 		return
 	}
-
+	replyL1, err1 := st.GetList(key, false)
+	LOGE.Println(replyL1.Value)
+	if checkErrorStatus(err1, replyL1.Status, storagerpc.OK) {
+		return
+	}
 	// update this key
 	replyP, err := st.AppendToList(key, "value1")
 	if checkErrorStatus(err, replyP.Status, storagerpc.OK) {
@@ -1024,6 +1028,7 @@ func testUpdateListBeforeLeaseExpire() {
 		return
 	}
 	if len(replyL.Value) != 1 || replyL.Value[0] != "old-value" {
+		LOGE.Println(replyL.Value)
 		LOGE.Println("FAIL: got wrong value")
 		failCount++
 		return

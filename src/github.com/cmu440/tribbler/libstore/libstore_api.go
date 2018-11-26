@@ -33,7 +33,6 @@ type Libstore interface {
 // LeaseCallbacks defines the set of methods that a StorageServer can call
 // on a TribServer's local cache.
 type LeaseCallbacks interface {
-
 	// RevokeLease is a callback RPC method that is invoked by storage
 	// servers when a lease is revoked. It should reply with status OK
 	// if the key was successfully revoked, or with status KeyNotFound
