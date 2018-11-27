@@ -50,6 +50,7 @@ func NewTribServer(masterServerHostPort, myHostPort string) (TribServer, error) 
 }
 
 func (ts *tribServer) CreateUser(args *tribrpc.CreateUserArgs, reply *tribrpc.CreateUserReply) error {
+	fmt.Println("debug create")
 	userKey := util.FormatUserKey(args.UserID)
 
 	user, _ := ts.l.Get(userKey)

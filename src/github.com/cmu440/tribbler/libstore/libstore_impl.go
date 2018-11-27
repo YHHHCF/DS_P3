@@ -14,10 +14,10 @@ type libstore struct {
 	mux sync.Mutex // mutex for synchronizing counter and cache
 
 	masterServerHostPort string // the master storage server's host:port
-	myHostPort           string // this Libstore's host:port (callback address sserver will use)
+	myHostPort           string // this libstore's host:port (callback address storage server will use)
 
-	leaseMode LeaseMode // a debugging flag that determines how the Libstore should request/handle leases
-	// also determine whether or not the Libstore should register to receive RPCs
+	leaseMode LeaseMode // a debugging flag that determines how the libstore should request/handle leases
+	// also determine whether or not the libstore should register to receive RPCs
 	// from the storage servers
 	queryCacheSeconds int         // time period for tracking queries and determining whether to request leases
 	queryCacheThresh  int         // the thresh for requesting leases in a period of queryCacheSeconds
@@ -86,7 +86,7 @@ func NewLibstore(masterServerHostPort, myHostPort string, mode LeaseMode) (Libst
 	// store all the storage servers
 	lServer.storageServers = reply.Servers
 
-	// build the virualID ring for all storage seervers
+	// build the virualID ring for all storage servers
 	lServer.BuildRing()
 
 	// Wrap the libStore before registering it for RPC.
@@ -119,7 +119,7 @@ func (ls *libstore) Get(key string) (string, error) {
 	client := ls.GetClient(key)
 	var nilString string
 	if client == nil {
-		return nilString, errors.New("cannot connect to a nil clinet")
+		return nilString, errors.New("cannot connect to a nil client")
 	}
 
 	value, hasKey := ls.GetCacheItem(key)
@@ -153,7 +153,7 @@ func (ls *libstore) Get(key string) (string, error) {
 		err := client.Call("StorageServer.Get", args, &reply)
 
 		if reply.Status != storagerpc.OK {
-			err = errors.New("Get not ok")
+			err = errors.New("get not ok")
 		} else {
 			// if reply ok and reply lease granted, cache the returned value
 			if reply.Lease.Granted {
@@ -170,7 +170,7 @@ func (ls *libstore) Get(key string) (string, error) {
 func (ls *libstore) Put(key, value string) error {
 	client := ls.GetClient(key)
 	if client == nil {
-		return errors.New("cannot connect to a nil clinet")
+		return errors.New("cannot connect to a nil client")
 	}
 
 	args := &storagerpc.PutArgs{Key: key, Value: value}
@@ -179,7 +179,7 @@ func (ls *libstore) Put(key, value string) error {
 	err := client.Call("StorageServer.Put", args, &reply)
 
 	if reply.Status != storagerpc.OK {
-		err = errors.New("Put not ok")
+		err = errors.New("put not ok")
 	}
 
 	return err
@@ -188,7 +188,7 @@ func (ls *libstore) Put(key, value string) error {
 func (ls *libstore) Delete(key string) error {
 	client := ls.GetClient(key)
 	if client == nil {
-		return errors.New("cannot connect to a nil clinet")
+		return errors.New("cannot connect to a nil client")
 	}
 
 	args := &storagerpc.DeleteArgs{Key: key}
@@ -197,7 +197,7 @@ func (ls *libstore) Delete(key string) error {
 	err := client.Call("StorageServer.Delete", args, &reply)
 
 	if reply.Status != storagerpc.OK {
-		err = errors.New("Delete not ok")
+		err = errors.New("delete not ok")
 	}
 
 	return err
@@ -208,7 +208,7 @@ func (ls *libstore) GetList(key string) ([]string, error) {
 	client := ls.GetClient(key)
 	var nilStrings []string
 	if client == nil {
-		return nilStrings, errors.New("cannot connect to a nil clinet")
+		return nilStrings, errors.New("cannot connect to a nil client")
 	}
 
 	value, hasKey := ls.GetCacheList(key)
@@ -242,7 +242,7 @@ func (ls *libstore) GetList(key string) ([]string, error) {
 		err := client.Call("StorageServer.GetList", args, &reply)
 
 		if reply.Status != storagerpc.OK {
-			err = errors.New("GetList not ok")
+			err = errors.New("getList not ok")
 		} else {
 			// if reply ok and mode is true, cache the returned value
 			if reply.Lease.Granted {
@@ -250,7 +250,6 @@ func (ls *libstore) GetList(key string) ([]string, error) {
 				go ls.ManageLeaseTimeout(key, 1, reply.Lease.ValidSeconds)
 			}
 		}
-
 		return reply.Value, err
 	}
 }
@@ -259,7 +258,7 @@ func (ls *libstore) GetList(key string) ([]string, error) {
 func (ls *libstore) RemoveFromList(key, removeItem string) error {
 	client := ls.GetClient(key)
 	if client == nil {
-		return errors.New("cannot connect to a nil clinet")
+		return errors.New("cannot connect to a nil client")
 	}
 
 	args := &storagerpc.PutArgs{Key: key, Value: removeItem}
@@ -279,7 +278,7 @@ func (ls *libstore) RemoveFromList(key, removeItem string) error {
 func (ls *libstore) AppendToList(key, newItem string) error {
 	client := ls.GetClient(key)
 	if client == nil {
-		return errors.New("cannot connect to a nil clinet")
+		return errors.New("cannot connect to a nil client")
 	}
 
 	args := &storagerpc.PutArgs{Key: key, Value: newItem}
@@ -637,7 +636,7 @@ func (ls *libstore) CacheKeyHostPortMap(key string) string {
 	return hostPort
 }
 
-// find the hostPort with the nearest vID which is equal or greater than the given ID
+// find the hostPort of the node with nearest vID which is equal or greater than the given ID
 func (ls *libstore) FindNearestNode(vID uint32) string {
 	var tempStr string
 	var tempDiff uint32

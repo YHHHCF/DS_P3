@@ -64,7 +64,8 @@ function testDelayedStart {
     sleep 5
 
     # Run lrunner.
-    ${LRUNNER} -port=${STORAGE_PORT} p "key:" value &> /dev/null &
+#    ${LRUNNER} -port=${STORAGE_PORT} p "key:" value &> /dev/null &
+    ${LRUNNER} -port=${STORAGE_PORT} p "key:" value &
     sleep 3
 
     # Start second storage server.
@@ -75,6 +76,8 @@ function testDelayedStart {
 
     # Run lrunner.
     PASS=`${LRUNNER} -port=${STORAGE_PORT} g "key:" | grep value | wc -l`
+
+
     if [ "$PASS" -eq 1 ]
     then
         echo "PASS"
