@@ -57,7 +57,6 @@ func main() {
 	if err != nil {
 		LOGE.Fatalln("FAIL: NewTribClient returned error:", err)
 	}
-
 	user := flag.Arg(0)
 	userNum, err := strconv.Atoi(user)
 	if err != nil {
@@ -67,19 +66,16 @@ func main() {
 	if err != nil {
 		LOGE.Fatalf("FAIL: numTargets invalid %s\n", flag.Arg(1))
 	}
-
 	_, err = client.CreateUser(user)
 	if err != nil {
 		LOGE.Fatalf("FAIL: error when creating userID '%s': %s\n", user, err)
 	}
-
 	tribIndex := 0
 	if *seed == 0 {
 		rand.Seed(time.Now().UnixNano())
 	} else {
 		rand.Seed(*seed)
 	}
-
 	cmds := make([]int, *numCmds)
 	for i := 0; i < *numCmds; i++ {
 		cmds[i] = rand.Intn(6)
